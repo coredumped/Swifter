@@ -1,6 +1,6 @@
 //
-//  AppDelegate.swift
-//  SwifterDemoMac
+//  SwifterSpam.swift
+//  Swifter
 //
 //  Copyright (c) 2014 Matt Donnelly.
 //
@@ -23,23 +23,23 @@
 //  THE SOFTWARE.
 //
 
-import Cocoa
-import SwifterMac
+import Foundation
 
-@NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate {
+public extension Swifter {
     
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(AppDelegate.handleEvent(_:withReplyEvent:)), forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
-        LSSetDefaultHandlerForURLScheme("swifter" as CFString, Bundle.main.bundleIdentifier! as CFString)
+    /**
+     POST   users/report_spam
+     
+     Report the specified user as a spam account to Twitter. Additionally performs the equivalent of POST blocks/create on behalf of the authenticated user.
+     */
+    func reportSpam(for userTag: UserTag,
+                    success: SuccessHandler? = nil,
+                    failure: FailureHandler? = nil) {
+        let path = "users/report_spam.json"
+        let parameters: [String: Any] = [userTag.key: userTag.value]
+        self.postJSON(path: path, baseURL: .api, parameters: parameters, success: { json, _ in
+            success?(json)
+        }, failure: failure)
     }
-
-    @objc func handleEvent(_ event: NSAppleEventDescriptor!, withReplyEvent: NSAppleEventDescriptor!) {
-        guard let callbackUrl = URL(string: "swifter://success") else { return }
-        guard let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue else { return }
-        guard let url = URL(string: urlString) else { return }
-        Swifter.handleOpenURL(url, callbackURL: callbackUrl)
-    }
-
+    
 }
-

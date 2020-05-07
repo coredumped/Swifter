@@ -1,6 +1,6 @@
 //
-//  AppDelegate.swift
-//  SwifterDemoMac
+//  URL+Swifter.swift
+//  Swifter
 //
 //  Copyright (c) 2014 Matt Donnelly.
 //
@@ -23,23 +23,35 @@
 //  THE SOFTWARE.
 //
 
-import Cocoa
-import SwifterMac
+import Foundation
 
-@NSApplicationMain
-class AppDelegate: NSObject, NSApplicationDelegate {
+extension URL {
     
-    func applicationDidFinishLaunching(_ notification: Notification) {
-        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(AppDelegate.handleEvent(_:withReplyEvent:)), forEventClass: AEEventClass(kInternetEventClass), andEventID: AEEventID(kAEGetURL))
-        LSSetDefaultHandlerForURLScheme("swifter" as CFString, Bundle.main.bundleIdentifier! as CFString)
+    func append(queryString: String) -> URL {
+        guard !queryString.utf16.isEmpty else {
+            return self
+        }
+        
+        var absoluteURLString = self.absoluteString
+        
+        if absoluteURLString.hasSuffix("?") {
+            absoluteURLString = String(absoluteURLString[0..<absoluteURLString.utf16.count])
+        }
+        
+        let urlString = absoluteURLString + (absoluteURLString.range(of: "?") != nil ? "&" : "?") + queryString
+        return URL(string: urlString)!
     }
-
-    @objc func handleEvent(_ event: NSAppleEventDescriptor!, withReplyEvent: NSAppleEventDescriptor!) {
-        guard let callbackUrl = URL(string: "swifter://success") else { return }
-        guard let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue else { return }
-        guard let url = URL(string: urlString) else { return }
-        Swifter.handleOpenURL(url, callbackURL: callbackUrl)
+    
+    func hasSameUrlScheme(as otherUrl: URL) -> Bool {
+        guard let scheme = self.scheme, let otherScheme = otherUrl.scheme else { return false }
+        return scheme.caseInsensitiveCompare(otherScheme) == .orderedSame
     }
-
+  
+    var queryParamsForSSO: [String : String] {
+        guard let host = self.host else { return [:] }
+        return host.split(separator: "&").reduce(into: [:]) { (result, parameter) in
+            let keyValue = parameter.split(separator: "=")
+            result[String(keyValue[0])] = String(keyValue[1])
+        }
+    }
 }
-
